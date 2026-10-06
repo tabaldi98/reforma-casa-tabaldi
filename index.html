@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reforma da casa</title>
+<meta name="description" content="Modelo 3D da casa e do projeto de reforma: garagem fechada e nova fachada.">
+<meta property="og:title" content="Reforma da casa">
+<meta property="og:description" content="Modelo 3D da casa e do projeto de reforma: garagem fechada e nova fachada.">
+<meta property="og:image" content="reforma%20casa/fotos/02-perspectiva-esquerda.jpg">
+<style>
+  :root {
+    --bg: #f4f5f6; --card: #ffffff; --text: #1d2125; --muted: #5f6870; --line: #dde1e5;
+    --accent: #2b2f33; --accent-text: #ffffff; --chip: #eceef0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15181b; --card: #1e2226; --text: #e9ecef; --muted: #9aa3ab; --line: #30363c;
+      --accent: #e9ecef; --accent-text: #15181b; --chip: #262b30;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+  header { padding: 40px 0 24px; }
+  h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.15; margin: 0 0 8px; letter-spacing: -0.01em; }
+  .lead { color: var(--muted); margin: 0 0 20px; max-width: 680px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; border: 1px solid var(--line); color: var(--text); background: var(--card); }
+  .btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .btn:hover { filter: brightness(0.96); }
+  .hero { margin: 8px 0 32px; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); background: var(--card); }
+  .hero img { display: block; width: 100%; height: auto; cursor: zoom-in; }
+  h2 { font-size: 20px; margin: 36px 0 14px; }
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .fact { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .fact b { display: block; margin-bottom: 4px; }
+  .fact span { color: var(--muted); font-size: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  figure { margin: 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  figure img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; cursor: zoom-in; }
+  figcaption { padding: 8px 12px; font-size: 14px; color: var(--muted); }
+  details { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; }
+  summary { cursor: pointer; font-weight: 600; }
+  details ul { margin: 10px 0 2px; padding-left: 20px; }
+  details li { margin: 4px 0; }
+  a { color: inherit; }
+  footer { color: var(--muted); font-size: 13px; padding: 32px 0 40px; }
+  dialog { border: 0; padding: 0; background: transparent; max-width: 96vw; max-height: 94vh; }
+  dialog::backdrop { background: rgba(0, 0, 0, .85); }
+  dialog img { display: block; max-width: 96vw; max-height: 86vh; border-radius: 8px; }
+  .lb-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; color: #fff; padding: 10px 2px 0; font-size: 14px; }
+  .lb-bar button { background: rgba(255,255,255,.15); color: #fff; border: 0; border-radius: 8px; padding: 8px 14px; font: inherit; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Reforma da casa</h1>
+    <p class="lead">Modelo 3D feito a partir da planta baixa e das fotos da casa. Dá para girar, ver por dentro e comparar a casa de hoje com a reforma: garagem fechada e nova fachada.</p>
+    <div class="actions">
+      <a class="btn primary" href="reforma%20casa/casa-3d-reforma.html">Abrir o modelo 3D da reforma</a>
+      <a class="btn" href="reforma%20casa/casa-3d-base.html">Ver a casa como é hoje</a>
+    </div>
+  </header>
+
+  <div class="hero"><img src="reforma%20casa/fotos/02-perspectiva-esquerda.jpg" alt="Reforma: vista em perspectiva da frente, lado esquerdo" data-i="1"></div>
+
+  <h2>O que muda na reforma</h2>
+  <div class="facts">
+    <div class="fact"><b>Garagem fechada</b><span>3,70 × 9,31 m internos (34,45 m²), da lateral da casa até o muro, alinhada com a sala e a lavanderia. Altura de 3,23 m.</span></div>
+    <div class="fact"><b>Dois portões</b><span>Na frente e nos fundos, de 3,10 × 2,40 m, em lambri.</span></div>
+    <div class="fact"><b>Nova fachada em chumbo</b><span>Moldura no quarto da frente e faixa sobre a varanda e a entrada da garagem, rente à casa.</span></div>
+    <div class="fact"><b>Acabamentos</b><span>Casa pintada de cinza, pedra ferro escura nas faces internas dos pilares e spots embutidos. Sem arandelas na frente.</span></div>
+  </div>
+
+  <h2>Imagens</h2>
+  <div class="grid" id="grid"></div>
+
+  <h2>Versões anteriores</h2>
+  <details>
+    <summary>Como a fachada e a garagem evoluíram até a versão atual</summary>
+    <ul id="versions"></ul>
+  </details>
+
+  <footer>Medidas da planta baixa A01-15; alturas estimadas pelas fotos. Os modelos 3D precisam de internet para carregar e funcionam melhor no computador, mas também abrem no celular.</footer>
+</div>
+
+<dialog id="lb">
+  <img id="lbImg" alt="">
+  <div class="lb-bar"><button id="prev">‹ Anterior</button><span id="lbCap"></span><button id="next">Próxima ›</button><button id="close">Fechar</button></div>
+</dialog>
+
+<script>
+const base = 'reforma%20casa/';
+const photos = [
+  ['01-frente.jpg', 'Frente'], ['02-perspectiva-esquerda.jpg', 'Perspectiva da frente, lado esquerdo'],
+  ['03-perspectiva-direita.jpg', 'Perspectiva da frente, lado da garagem'], ['04-detalhe-fachada.jpg', 'Detalhe da fachada e da varanda'],
+  ['05-fundos.jpg', 'Fundos, com o portão de trás da garagem'], ['06-vista-aerea.jpg', 'Vista aérea'],
+  ['07-planta-3d.jpg', 'Planta 3D com os cômodos'], ['08-sem-telhado.jpg', 'Vista sem telhado'],
+  ['09-com-fotos-frente.jpg', 'Com as fotos reais: frente'], ['10-com-fotos-esquerda.jpg', 'Com as fotos reais: lado esquerdo'],
+  ['11-com-fotos-direita.jpg', 'Com as fotos reais: lado da garagem'], ['12-com-fotos-fundos.jpg', 'Com as fotos reais: fundos'],
+];
+const versions = [
+  ['v1-garagem-extensao-total', 'v1 · Garagem com a extensão total da casa'],
+  ['v2-portico-varanda-garagem', 'v2 · Garagem alinhada com a sala e pórtico branco'],
+  ['v3-portico-faixa-grossa', 'v3 · Pórtico de ponta a ponta, faixa grossa'],
+  ['v4-portico-60cm-topo-casa', 'v4 · Faixa de 60 cm no topo da casa'],
+  ['v5-portico-sem-pilar-esquerdo', 'v5 · Faixa na linha da garagem'],
+  ['v6-portico-branco', 'v6 · Pórtico branco com pilares nas duas pontas'],
+  ['v7-portico-unico-chumbo', 'v7 · Casa cinza, pórtico chumbo e pedra ferro'],
+  ['v8-fachada-dupla-moldura', 'v8 · Fachada em duas partes, moldura no quarto'],
+  ['v9-faixa-pedra-ferro', 'v9 · Faixa superior em pedra ferro até a sala'],
+  ['v10-faixa-garagem-comprimento-casa', 'v10 · Faixa da garagem com o comprimento da casa'],
+  ['v11-com-arandelas', 'v11 · Fachada atual, ainda com arandelas'],
+];
+const grid = document.getElementById('grid');
+photos.forEach(([f, cap], i) => {
+  const fig = document.createElement('figure');
+  fig.innerHTML = `<img src="${base}fotos/${f}" alt="${cap}" loading="lazy" data-i="${i}"><figcaption>${cap}</figcaption>`;
+  grid.appendChild(fig);
+});
+document.getElementById('versions').innerHTML = versions.map(([f, t]) =>
+  `<li><a href="${base}versoes-anteriores/casa-3d-reforma-${f}.html">${t}</a></li>`).join('');
+
+const lb = document.getElementById('lb'), lbImg = document.getElementById('lbImg'), lbCap = document.getElementById('lbCap');
+let cur = 0;
+function show(i) { cur = (i + photos.length) % photos.length; lbImg.src = base + 'fotos/' + photos[cur][0]; lbImg.alt = lbCap.textContent = photos[cur][1]; if (!lb.open) lb.showModal(); }
+document.addEventListener('click', e => { const img = e.target.closest('img[data-i]'); if (img && !lb.contains(img)) show(+img.dataset.i); });
+document.getElementById('prev').onclick = () => show(cur - 1);
+document.getElementById('next').onclick = () => show(cur + 1);
+document.getElementById('close').onclick = () => lb.close();
+lb.addEventListener('click', e => { if (e.target === lb) lb.close(); });
+document.addEventListener('keydown', e => { if (!lb.open) return; if (e.key === 'ArrowLeft') show(cur - 1); if (e.key === 'ArrowRight') show(cur + 1); });
+</script>
+</body>
+</html>

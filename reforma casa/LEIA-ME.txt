@@ -1,0 +1,15 @@
+REFORMA DA CASA - MODELO 3D
+===========================
+
+casa-3d-reforma.html  -> modelo atual da reforma. Abra com dois cliques (Chrome ou Edge).
+                          No painel: "Projeto" alterna entre Atual e Reforma; "Modelo" entre
+                          1 (limpo) e 2 (com as fotos); dá para girar, ver sem telhado, a planta
+                          com os nomes dos cômodos e baixar o modelo em .glb (Blender/SketchUp).
+casa-3d-base.html     -> casa como ela é hoje, sem a reforma (versão base congelada).
+fotos/                -> imagens da reforma em Full HD, prontas para compartilhar.
+versoes-anteriores/   -> versões intermediárias da fachada/garagem, da mais antiga (v1) à mais nova.
+codigo-fonte/         -> arquivos para continuar editando o modelo (template, texturas das fotos
+                          e ferramentas de geração em Node.js).
+
+Observação: os arquivos .html precisam de internet para abrir (carregam a biblioteca 3D).
+Medidas da planta baixa A01-15; alturas estimadas a partir das fotos.

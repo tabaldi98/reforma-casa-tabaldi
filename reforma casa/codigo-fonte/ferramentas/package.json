@@ -1,0 +1,19 @@
+{
+  "name": "tools",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "jpeg-js": "^0.4.4",
+    "pdf-to-img": "^7.0.0",
+    "pdfjs-dist": "^6.4.299",
+    "pngjs": "^7.0.0"
+  }
+}
