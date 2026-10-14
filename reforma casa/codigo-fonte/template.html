@@ -133,11 +133,12 @@ const CX = 3.75, CZ = 6.28;
 const toV = (X, y, Z) => new THREE.Vector3(X - CX, y, CZ - Z);
 // Terreno: 14 m de largura; muro da direita a ~11,35 m da lateral esquerda da casa (calibrado pela foto 6)
 const LOT_X0 = -2.65, LOT_X1 = 11.35, LOT_Z0 = -4.5, LOT_Z1 = 17.5;
-// Reforma - garagem fechada entre a casa e o muro da direita, alinhada com o bloco sala → lavanderia
+// Reforma - garagem fechada entre a casa e o muro da direita, da frente da sala até o fim da área dos fundos
 const GH = 3.23;          // topo da garagem = friso superior da fachada (mais baixa que a casa)
 const GROOF = 2.85, GFL = 0.06;
 const GX0 = 7.50, GX1 = LOT_X1 - 0.15;            // vão interno: lateral da casa até a parede no muro
-const GZ0 = 1.30, GZ1 = 10.91;                    // frente da sala até os fundos da lavanderia
+const GZ0 = 1.30, GZ1 = 12.70;                    // frente da sala até o fim da área dos fundos
+const GZL = 10.91;                                // fundos da lavanderia: dali para trás a garagem tem parede própria do lado da área
 const GATE = [7.80, 10.90], GATE_H = GFL + 2.40;  // portões de 3,10 × 2,40 m
 // Fachada em duas partes (chumbo):
 // 1) garagem: faixa de 40 cm na linha da garagem, da sala (fim do quarto) até o muro, rente à frente da casa
@@ -373,11 +374,12 @@ const ROOMS = [
 const GATE_OP = W('gate', GATE[0], GATE[1], GFL, GATE_H);
 const GARAGE_WALLS = [
   { kind: 'ext', d: 'x', a: [GX0, LOT_X1], b: [GZ0, GZ0 + 0.15], top: GH, out: -1, ops: [GATE_OP] }, // frente, alinhada com a frente da sala
-  { kind: 'ext', d: 'x', a: [GX0, LOT_X1], b: [GZ1 - 0.15, GZ1], top: GH, out: 1, ops: [GATE_OP] },  // fundos, alinhada com a lavanderia
+  { kind: 'ext', d: 'x', a: [GX0 - 0.15, LOT_X1], b: [GZ1 - 0.15, GZ1], top: GH, out: 1, ops: [GATE_OP] }, // fundos, alinhada com o fim da área
+  { kind: 'ext', d: 'z', a: [GZL, GZ1 - 0.15], b: [GX0 - 0.15, GX0], top: GH, out: -1 },        // lateral voltada para a área, após a lavanderia
   { kind: 'ext', d: 'z', a: [GZ0 + 0.15, GZ1 - 0.15], b: [GX1, LOT_X1], top: GH, out: 1 },           // parede sobre o muro da divisa
 ];
 const GARAGE_FACES = [
-  { d: 'x', at: GZ0, out: -1, a: [GX0, PLEG[0]] }, { d: 'x', at: GZ1, out: 1, a: [GX0, LOT_X1] }, { d: 'z', at: LOT_X1, out: 1, a: [GZ0, GZ1] },
+  { d: 'x', at: GZ0, out: -1, a: [GX0, PLEG[0]] }, { d: 'x', at: GZ1, out: 1, a: [GX0 - 0.15, LOT_X1] }, { d: 'z', at: GX0 - 0.15, out: -1, a: [GZL, GZ1] }, { d: 'z', at: LOT_X1, out: 1, a: [GZ0, GZ1] },
 ];
 const GARAGE_LIGHTS = [['x', GZ1, 1, 7.65, 2.70], ['x', GZ1, 1, 11.125, 2.70]];   // só nos fundos (a frente fica sem arandelas)
 const GARAGE_AREA = ((GX1 - GX0) * (GZ1 - GZ0 - 0.30)).toFixed(2).replace('.', ',');
@@ -389,7 +391,7 @@ function buildGarage(g) {
   for (const [d, at, out, s, y] of GARAGE_LIGHTS) onFace(g, d, at, out, s - 0.045, s + 0.045, y - 0.065, y + 0.065, 0, 0.07, M.fixture);
   // pisos externos: entrada coberta pelo pórtico e área de manobra nos fundos
   box(g, GX0, PLEG[0], 0, GFL, -1.2, GZ0, M.concrete, { cast: false });
-  box(g, GX0, GX1, 0, 0.04, GZ1, 12.60, M.concrete, { cast: false });
+  box(g, GX0, GX1, 0, 0.04, GZ1, GZ1 + 1.70, M.concrete, { cast: false });
   const fm = M.facade, ST = 0.03, stone = (x0, x1, y1, z1) => box(g, x0, x1, 0, y1, PZ0, z1, M.stone, { tile: 0.6 });
   const spots = (pts, y) => { for (const [x, z] of pts) box(g, x - 0.07, x + 0.07, y - 0.012, y, z - 0.07, z + 0.07, M.spot, { cast: false }); };
   // 1) fachada da garagem: faixa sobre a varanda e a garagem, da lateral do quarto até o muro, rente à frente da casa
@@ -637,7 +639,7 @@ async function rebuild() {
     ? 'Mesma geometria da planta, com as suas fotos aplicadas nas fachadas. A lateral esquerda e o volume alto quase não aparecem nas fotos, então ficaram com textura de reboco genérica.'
     : 'Geometria da planta baixa, com alturas estimadas pelas fotos (platibanda ~4,40 m; volume do quarto dos fundos ~5,85 m). Materiais simplificados.';
   document.getElementById('note').textContent = REFORM
-    ? `Reforma: garagem fechada de ${(GX1 - GX0).toFixed(2).replace('.', ',')} × ${(GZ1 - GZ0 - 0.30).toFixed(2).replace('.', ',')} m internos (${GARAGE_AREA} m²), da lateral da casa até o muro, alinhada com o bloco da sala até a lavanderia. Altura 3,23 m, na linha do friso. Portões de 3,10 × 2,40 m na frente e nos fundos. Fachada em chumbo em duas partes: na garagem, faixa de 40 cm (2,83 a 3,23 m, na linha da garagem) da sala até o muro, rente à frente da casa; no quarto da frente, avançando 40 cm, pilar esquerdo até o chão e faixa horizontal de 40 cm (4,00 a 4,40 m) do quarto até o fim da sala. Pedra ferro escura nas faces internas dos pilares. Casa e garagem pintadas de cinza.` + base
+    ? `Reforma: garagem fechada de ${(GX1 - GX0).toFixed(2).replace('.', ',')} × ${(GZ1 - GZ0 - 0.30).toFixed(2).replace('.', ',')} m internos (${GARAGE_AREA} m²), da lateral da casa até o muro, da frente da sala até o fim da área dos fundos. Altura 3,23 m, na linha do friso. Portões de 3,10 × 2,40 m na frente e nos fundos. Fachada em chumbo em duas partes: na garagem, faixa de 40 cm (2,83 a 3,23 m, na linha da garagem) da sala até o muro, rente à frente da casa; no quarto da frente, avançando 40 cm, pilar esquerdo até o chão e faixa horizontal de 40 cm (4,00 a 4,40 m) do quarto até o fim da sala. Pedra ferro escura nas faces internas dos pilares. Casa e garagem pintadas de cinza.` + base
     : 'Situação atual. ' + base;
 }
 
