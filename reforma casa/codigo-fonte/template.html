@@ -132,7 +132,10 @@ const ROOF = 3.85, ROOFT = 5.30, CAP = 0.04;
 const CX = 3.75, CZ = 6.28;
 const toV = (X, y, Z) => new THREE.Vector3(X - CX, y, CZ - Z);
 // Terreno: 14 m de largura; muro da direita a ~11,35 m da lateral esquerda da casa (calibrado pela foto 6)
-const LOT_X0 = -2.65, LOT_X1 = 11.35, LOT_Z0 = -4.5, LOT_Z1 = 17.5;
+const LOT_X0 = -2.65, LOT_X1 = 11.35, LOT_Z0 = -4.5, LOT_Z1 = 22.5;
+// Construção dos fundos (sem planta, medida pela foto): 14 × 5 m, encostada no fundo e nas laterais do lote,
+// 5 m de grama depois da casa. Telhado de fibrocimento em uma água, caindo para a frente (lado da casa)
+const ANX_Z0 = LOT_Z1 - 5.00, ANX_Z1 = LOT_Z1, ANX_FL = 0.10, ANX_HF = 2.45, ANX_HB = 3.00, ANX_EAVE = 0.60;
 // Reforma - garagem fechada entre a casa e o muro da direita, da frente da sala até o fim da área dos fundos
 const GH = 3.23;          // topo da garagem = friso superior da fachada (mais baixa que a casa)
 const GROOF = 2.85, GFL = 0.06;
@@ -242,6 +245,7 @@ const M = {
   acGrill: STD({ color: 0x4a4d52, roughness: .7 }), granite: STD({ color: 0x3b3a37, roughness: .3 }),
   bar: STD({ color: 0xf3f3f1, roughness: .5 }), white: STD({ color: 0xf5f5f3, roughness: .6 }), pipe: STD({ color: 0xd7d4cd, roughness: .7 }),
   outside: STD({ color: 0x8a9a6c, roughness: 1 }),
+  annexWall: tiled(T.plasterIn), wood: STD({ color: 0x7a5a3c, roughness: .8 }),
   polycarb: STD({ color: 0xdcedf5, roughness: .12, transparent: true, opacity: .32, side: THREE.DoubleSide, depthWrite: false }),
 };
 
@@ -436,7 +440,7 @@ function buildAreaRoof(g) {
   box(g, x0, x1, yB - 0.12, yB + 0.01, z1 - 0.10, z1, M.frame);                                // calha / testeira nos fundos
 }
 function wallMats(def) {
-  const ext = extMat();
+  const ext = def.mat || extMat();
   if (def.kind !== 'ext') return { low: M.wallIn, high: ext };
   // ordem do BoxGeometry: +x, -x, +y, -y, +z, -z (coordenadas three). Só a face voltada para dentro é interna;
   // as pontas da parede (ex.: entre a sala e a garagem) ficam com o acabamento externo
@@ -468,7 +472,7 @@ function fillOpening(g, def, o) {
   const bc = (def.b[0] + def.b[1]) / 2, out = def.out || 1;
   const P = (s0, s1, y0, y1, t0, t1, mat) => onFace(g, def.d, bc, out, s0, s1, y0, y1, t0, t1, mat);
   const { a0, a1, y0, y1 } = o, f = 0.045, isDoor = o.t === 'door' || o.t === 'frontdoor' || o.t === 'gate';
-  const fm = o.t === 'shutter' ? M.frameDark : M.frame;
+  const fm = o.t === 'shutter' || o.dark ? M.frameDark : M.frame;
   P(a0, a1, y1 - f, y1, -0.035, 0.035, fm); P(a0, a0 + f, y0, y1, -0.035, 0.035, fm); P(a1 - f, a1, y0, y1, -0.035, 0.035, fm);
   if (!isDoor) P(a0, a1, y0, y0 + f, -0.035, 0.035, fm);
   const ia0 = a0 + f, ia1 = a1 - f, iy0 = isDoor ? y0 : y0 + f, iy1 = y1 - f;
@@ -498,7 +502,7 @@ function fillOpening(g, def, o) {
       if (o.tr) P(ia0, ia1, o.tr - 0.02, o.tr + 0.02, -0.02, 0.02, fm);
     }
   }
-  if (!(PHOTO && def.photo)) P(a0 - 0.04, a1 + 0.04, y0 - 0.03, y0, 0, 0.115, M.sill); // peitoril externo
+  if (!(PHOTO && def.photo) && !o.nosill) P(a0 - 0.04, a1 + 0.04, y0 - 0.03, y0, 0, 0.115, M.sill); // peitoril externo
 }
 
 function decal(g, f) {
@@ -573,7 +577,44 @@ function buildHouse() {
   walk(0.15, 0.65, 9.90, 12.56); walk(0.15, 4.35, 12.56, 13.06); walk(4.35, REFORM ? 7.50 : 7.95, 12.70, 13.06);
   if (!REFORM) walk(7.50, 7.95, 0, 12.70);
   if (REFORM) buildGarage(g);
+  buildAnnex(g);
   return g;
+}
+// ---------------- Construção dos fundos (existente): parede branca, esquadrias pretas, telhado em uma água
+const ANX_OPS = [ // portas e janelas da frente, da esquerda para a direita (medidas pela foto)
+  W('slide', -1.63, -0.83, ANX_FL, ANX_FL + 2.10, { dark: 1, nosill: 1 }),   // porta de vidro estreita
+  W('slide', -0.18, 1.73, 0.95, 2.20, { dark: 1 }),                         // janela
+  W('slide', 3.01, 6.12, ANX_FL, ANX_FL + 2.15, { dark: 1, nosill: 1 }),     // porta de correr de vidro
+  W('slide', 7.64, 10.07, 0.85, 2.25, { dark: 1 }),                         // janela larga
+];
+const ANX_WALLS = [
+  { kind: 'ext', d: 'x', a: [LOT_X0, LOT_X1], b: [ANX_Z0, ANX_Z0 + 0.15], top: ANX_HF, out: -1, mat: M.annexWall, ops: ANX_OPS },
+  { kind: 'ext', d: 'x', a: [LOT_X0, LOT_X1], b: [ANX_Z1 - 0.15, ANX_Z1], top: ANX_HB, out: 1, mat: M.annexWall },
+  { kind: 'ext', d: 'z', a: [ANX_Z0 + 0.15, ANX_Z1 - 0.15], b: [LOT_X0, LOT_X0 + 0.15], top: ANX_HF, out: -1, mat: M.annexWall },
+  { kind: 'ext', d: 'z', a: [ANX_Z0 + 0.15, ANX_Z1 - 0.15], b: [LOT_X1 - 0.15, LOT_X1], top: ANX_HF, out: 1, mat: M.annexWall },
+];
+function buildAnnex(g) {
+  box(g, LOT_X0, LOT_X1, 0, ANX_FL, ANX_Z0, ANX_Z1, M.concrete);                                   // piso
+  box(g, LOT_X0, LOT_X1, 0, ANX_FL - 0.02, ANX_Z0 - 0.75, ANX_Z0, M.terracotta, { tile: 0.9 });     // calçada cerâmica na frente
+  for (const w of ANX_WALLS) buildWall(g, w);
+  for (const s of [-2.08, 2.27, 6.87, 10.71]) onFace(g, 'x', ANX_Z0, -1, s - 0.05, s + 0.05, 2.25, 2.35, 0, 0.06, M.frameDark); // arandelas pretas
+  if (CUT !== Infinity) return;
+  const k = (ANX_HB - ANX_HF) / (ANX_Z1 - ANX_Z0), yAt = Z => ANX_HF + (Z - ANX_Z0) * k;
+  for (const x0 of [LOT_X0, LOT_X1 - 0.15]) {                                                     // oitões das laterais
+    const sh = new THREE.Shape([[ANX_Z0, ANX_HF], [ANX_Z1, ANX_HF], [ANX_Z1, ANX_HB]].map(([Z, y]) => new THREE.Vector2(CZ - Z, y)));
+    const geo = new THREE.ExtrudeGeometry(sh, { depth: 0.15, bevelEnabled: false }); geo.rotateY(-Math.PI / 2);
+    const m = new THREE.Mesh(geo, M.annexWall); m.position.x = x0 + 0.15 - CX; m.castShadow = m.receiveShadow = true; g.add(m);
+  }
+  const fib = M.fibro.clone(); fib.map = T.fibro.clone(); fib.map.repeat.set((LOT_X1 - LOT_X0) / 1.06, 1); fib.map.needsUpdate = true;
+  const zE = ANX_Z0 - ANX_EAVE;
+  slope(g, LOT_X0, LOT_X1, zE, ANX_Z1, yAt(zE) + 0.03, ANX_HB + 0.03, 0.03, fib);                  // telhas de fibrocimento
+  box(g, LOT_X0, LOT_X1, yAt(zE) - 0.10, yAt(zE) + 0.03, zE - 0.02, zE + 0.03, M.wood);              // testeira de madeira
+  box(g, LOT_X0, LOT_X1, yAt(zE) - 0.13, yAt(zE) - 0.02, zE - 0.10, zE - 0.02, M.white);            // calha
+  slope(g, LOT_X0, LOT_X1, zE, ANX_Z0, yAt(zE) - 0.06, ANX_HF - 0.02, 0.02, M.wood);                // forro de madeira do beiral
+  const cx0 = 7.67, cx1 = 8.29, cz0 = ANX_Z1 - 1.20, cz1 = ANX_Z1 - 0.58, ct = yAt(cz1) + 0.95;    // chaminé da churrasqueira
+  box(g, cx0, cx1, yAt(cz0) - 0.05, ct, cz0, cz1, M.concrete);
+  box(g, cx0 - 0.04, cx1 + 0.04, ct, ct + 0.06, cz0 - 0.04, cz1 + 0.04, M.concrete);
+  box(g, cx0 + 0.12, cx1 - 0.12, ct - 0.22, ct - 0.06, cz0 - 0.002, cz0 + 0.02, M.darkBack);
 }
 function numberPlate() {
   // na reforma o número vai para a faixa da garagem (claro sobre o chumbo), como no exemplo
@@ -595,9 +636,9 @@ function buildLot() {
   box(g, -12, 21, -0.12, -0.10, -14, -6.65, M.asphalt, { cast: false });
   // muros de divisa (laterais e fundos); na reforma a parede da garagem substitui o trecho do muro da direita
   const MH = 1.80;
-  box(g, LOT_X0, LOT_X0 + 0.15, 0, MH, LOT_Z0, LOT_Z1, M.block); box(g, LOT_X0, LOT_X1, 0, MH, LOT_Z1 - 0.15, LOT_Z1, M.block);
-  if (REFORM) { box(g, GX1, LOT_X1, 0, MH, LOT_Z0, GPZ, M.block); box(g, GX1, LOT_X1, 0, MH, GZ1, LOT_Z1 - 0.15, M.block); }
-  else box(g, GX1, LOT_X1, 0, MH, LOT_Z0, LOT_Z1 - 0.15, M.block);
+  box(g, LOT_X0, LOT_X0 + 0.15, 0, MH, LOT_Z0, ANX_Z0, M.block); // nos fundos as paredes da construção fazem a divisa
+  if (REFORM) { box(g, GX1, LOT_X1, 0, MH, LOT_Z0, GPZ, M.block); box(g, GX1, LOT_X1, 0, MH, GZ1, ANX_Z0, M.block); }
+  else box(g, GX1, LOT_X1, 0, MH, LOT_Z0, ANX_Z0, M.block);
   // muro frontal: base, pilares de bloco e grade branca (na reforma o pilar se alinha ao portão da garagem)
   box(g, LOT_X0, LOT_X1, 0, 0.22, -4.58, -4.42, M.concrete);
   const pil = [LOT_X0 + 0.13, 0.75, 2.65, 3.75, REFORM ? 7.65 : 8.4, LOT_X1 - 0.13];
@@ -646,7 +687,8 @@ let houseG = null, lotG = null;
 const labelG = new THREE.Group(); scene.add(labelG);
 function buildLabels() {
   labelG.clear();
-  const rooms = REFORM ? [...ROOMS, ['Garagem', `${GARAGE_AREA} m²`, (GX0 + GX1) / 2, (GZ0 + GZ1) / 2]] : ROOMS;
+  const annex = ['Construção dos fundos', '70 m² (sem planta)', (LOT_X0 + LOT_X1) / 2, (ANX_Z0 + ANX_Z1) / 2];
+  const rooms = REFORM ? [...ROOMS, ['Garagem', `${GARAGE_AREA} m²`, (GX0 + GX1) / 2, (GZ0 + GZ1) / 2], annex] : [...ROOMS, annex];
   for (const [n, a, X, Z] of rooms) { const d = document.createElement('div'); d.className = 'room'; d.innerHTML = `<b>${n}</b>${a}`;
     const o = new CSS2DObject(d); o.position.copy(toV(X, FL + 0.1, Z)); labelG.add(o); }
 }
@@ -665,13 +707,14 @@ async function rebuild() {
   const base = PHOTO
     ? 'Mesma geometria da planta, com as suas fotos aplicadas nas fachadas. A lateral esquerda e o volume alto quase não aparecem nas fotos, então ficaram com textura de reboco genérica.'
     : 'Geometria da planta baixa, com alturas estimadas pelas fotos (platibanda ~4,40 m; volume do quarto dos fundos ~5,85 m). Materiais simplificados.';
-  document.getElementById('note').textContent = REFORM
+  const annexNote = ' Construção dos fundos (existente, sem planta): 14 × 5 m, encostada no fundo e nas laterais do lote, a 5 m da casa, com telhado de fibrocimento em uma água; medidas das aberturas estimadas pela foto.';
+  document.getElementById('note').textContent = (REFORM
     ? `Reforma: garagem fechada de ${(GX1 - GX0).toFixed(2).replace('.', ',')} × ${(GZ1 - GZ0 - 0.30).toFixed(2).replace('.', ',')} m internos (${GARAGE_AREA} m²), da lateral da casa até o muro, da frente da sala até o fim da área dos fundos. Altura 3,23 m, na linha do friso. Portões de 3,10 × 2,40 m na frente e nos fundos. Área dos fundos, entre a casa e a garagem, coberta com policarbonato transparente (3,05 a 2,80 m, caindo para os fundos). Fachada em chumbo em duas partes: na garagem, faixa de 40 cm (2,83 a 3,23 m, na linha da garagem) da sala até o muro, rente à frente da casa; no quarto da frente, avançando 40 cm, pilar esquerdo até o chão e faixa horizontal de 40 cm (4,00 a 4,40 m) do quarto até o fim da sala. Pedra ferro escura nas faces internas dos pilares. Coberturas planas em chumbo sobre as janelas laterais do quarto dos fundos e da suíte, 30 cm maiores de cada lado e com 60 cm de balanço. Casa e garagem pintadas de cinza.` + base
-    : 'Situação atual. ' + base;
+    : 'Situação atual. ' + base) + annexNote;
 }
 
 // câmera
-const CAMS = { iso: [-11, 8, 16], front: [0, 3.2, 21], back: [7, 6.5, -19], left: [-19, 5, 1], right: [19, 5, 1], top: [0.01, 27, 1.5] };
+const CAMS = { iso: [-11, 8, 16], front: [0, 3.2, 21], back: [7, 9, -14], left: [-19, 5, 1], right: [19, 5, 1], top: [0.01, 27, 1.5] };
 let tween = null;
 function goCam(name) { const to = new THREE.Vector3(...CAMS[name]); tween = { p0: camera.position.clone(), p1: to, t0: performance.now(), dur: 700 }; }
 camera.position.set(...CAMS.iso);
