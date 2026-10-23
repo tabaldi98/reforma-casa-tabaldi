@@ -148,6 +148,10 @@ const PLEG = [LOT_X1 - 0.30, LOT_X1];             // parede do pórtico junto ao
 // 2) quarto da frente: avança 40 cm; pilar lateral esquerdo + faixa horizontal em chumbo do quarto até o fim da sala
 const PZ0 = -0.40;
 const QX0 = 0.65, QX1 = 4.35, QX2 = 7.50, QW = 0.30, QB = H - 0.40; // pilar de 30 cm, faixa de 40 cm (4,00 a 4,40 m)
+// 3) coberturas planas em chumbo sobre as janelas laterais dos quartos (quarto dos fundos e suíte):
+//    30 cm a mais de cada lado da janela, 60 cm de balanço, 12 cm de espessura, 5 cm acima da janela (abaixo do ar-condicionado)
+const CAN_SIDE = 0.30, CAN_OUT = 0.60, CAN_T = 0.12, CAN_GAP = 0.05;
+const CANOPIES = [[0, 4.07, 5.27, 2.27], [0.65, 10.30, 11.53, 2.45]]; // [face X, janela z0, z1, topo da janela]
 
 let CUT = Infinity, PHOTO = false, REFORM = true;
 
@@ -410,6 +414,12 @@ function buildGarage(g) {
   box(g, QX0, QX1, QB, H, PZ0, 0, fm);           // faixa horizontal em chumbo: na frente do quarto
   box(g, QX1, QX2, QB, H, PZ0, GZ0, fm);         // ... e sobre a varanda até o fim da sala, encostando na parede da sala
   spots([[1.75, -0.20], [3.25, -0.20]], QB);
+  // 3) coberturas das janelas laterais, com um spot embutido no centro
+  for (const [x, z0, z1, top] of CANOPIES) {
+    const y0 = top + CAN_GAP, zc = (z0 + z1) / 2, xs = x - CAN_OUT / 2;
+    box(g, x - CAN_OUT, x, y0, y0 + CAN_T, z0 - CAN_SIDE, z1 + CAN_SIDE, fm);
+    box(g, xs - 0.07, xs + 0.07, y0 - 0.012, y0, zc - 0.07, zc + 0.07, M.spot, { cast: false });
+  }
 }
 
 // Peça inclinada ao longo de Z: vai de (Z0, yA) a (Z1, yB), com largura X0..X1 e espessura t
@@ -656,7 +666,7 @@ async function rebuild() {
     ? 'Mesma geometria da planta, com as suas fotos aplicadas nas fachadas. A lateral esquerda e o volume alto quase não aparecem nas fotos, então ficaram com textura de reboco genérica.'
     : 'Geometria da planta baixa, com alturas estimadas pelas fotos (platibanda ~4,40 m; volume do quarto dos fundos ~5,85 m). Materiais simplificados.';
   document.getElementById('note').textContent = REFORM
-    ? `Reforma: garagem fechada de ${(GX1 - GX0).toFixed(2).replace('.', ',')} × ${(GZ1 - GZ0 - 0.30).toFixed(2).replace('.', ',')} m internos (${GARAGE_AREA} m²), da lateral da casa até o muro, da frente da sala até o fim da área dos fundos. Altura 3,23 m, na linha do friso. Portões de 3,10 × 2,40 m na frente e nos fundos. Área dos fundos, entre a casa e a garagem, coberta com policarbonato transparente (3,05 a 2,80 m, caindo para os fundos). Fachada em chumbo em duas partes: na garagem, faixa de 40 cm (2,83 a 3,23 m, na linha da garagem) da sala até o muro, rente à frente da casa; no quarto da frente, avançando 40 cm, pilar esquerdo até o chão e faixa horizontal de 40 cm (4,00 a 4,40 m) do quarto até o fim da sala. Pedra ferro escura nas faces internas dos pilares. Casa e garagem pintadas de cinza.` + base
+    ? `Reforma: garagem fechada de ${(GX1 - GX0).toFixed(2).replace('.', ',')} × ${(GZ1 - GZ0 - 0.30).toFixed(2).replace('.', ',')} m internos (${GARAGE_AREA} m²), da lateral da casa até o muro, da frente da sala até o fim da área dos fundos. Altura 3,23 m, na linha do friso. Portões de 3,10 × 2,40 m na frente e nos fundos. Área dos fundos, entre a casa e a garagem, coberta com policarbonato transparente (3,05 a 2,80 m, caindo para os fundos). Fachada em chumbo em duas partes: na garagem, faixa de 40 cm (2,83 a 3,23 m, na linha da garagem) da sala até o muro, rente à frente da casa; no quarto da frente, avançando 40 cm, pilar esquerdo até o chão e faixa horizontal de 40 cm (4,00 a 4,40 m) do quarto até o fim da sala. Pedra ferro escura nas faces internas dos pilares. Coberturas planas em chumbo sobre as janelas laterais do quarto dos fundos e da suíte, 30 cm maiores de cada lado e com 60 cm de balanço. Casa e garagem pintadas de cinza.` + base
     : 'Situação atual. ' + base;
 }
 
