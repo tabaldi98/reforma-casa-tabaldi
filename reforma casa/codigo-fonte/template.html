@@ -41,6 +41,16 @@
   .checks { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; }
   .checks label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
   #export { width: 100%; padding: 8px; margin-top: 2px; font-size: 13px; }
+  #panel { max-height: calc(100vh - 32px); overflow-y: auto; }
+  .paint-row { display: flex; align-items: center; gap: 8px; margin: 6px 0 4px; font-size: 13px; }
+  .paint-row input[type=color] { width: 38px; height: 30px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: none; cursor: pointer; flex: none; }
+  .paint-row b { display: block; font-weight: 600; } .paint-row span { color: var(--muted); font-size: 12px; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 5px; }
+  .swatches button { width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(0,0,0,.25); padding: 0; cursor: pointer; }
+  .swatches button.on { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .paint-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .paint-actions button { flex: 1; border: 1px solid var(--line); background: transparent; color: var(--text); border-radius: 6px; padding: 5px 6px; font: inherit; font-size: 12px; cursor: pointer; }
+  .paint-actions button:hover { border-color: var(--accent); }
   #note { font-size: 12px; color: var(--muted); margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
   #toggle { display: none; }
   #hint { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); font-size: 12px; color: var(--muted);
@@ -104,6 +114,20 @@
         <button data-cam="right">Direita</button>
         <button data-cam="top">Topo</button>
       </div>
+    </div>
+    <div class="group" id="paint">
+      <div class="glabel">Cores da pintura</div>
+      <div class="paint-row">
+        <input type="color" id="pick-wall" aria-label="Cor da casa">
+        <div><b>Casa</b><span id="name-wall"></span></div>
+      </div>
+      <div class="swatches" id="sw-wall"></div>
+      <div class="paint-row">
+        <input type="color" id="pick-trim" aria-label="Cor dos detalhes">
+        <div><b>Detalhes (faixas, pilares e coberturas)</b><span id="name-trim"></span></div>
+      </div>
+      <div class="swatches" id="sw-trim"></div>
+      <div class="paint-actions"><button id="paintReset">Cores do projeto</button><button id="paintLink">Copiar link com estas cores</button></div>
     </div>
     <div class="group checks">
       <label><input type="checkbox" id="lot" checked> Terreno e muro</label>
@@ -211,8 +235,9 @@ const T = {
   block: canvasTex(256, (g, n) => { speckle(g, n, '#a9a9a4', ['#9c9c97', '#b6b6b1'], 3000, 2, 91); g.fillStyle = '#86867f';
     g.fillRect(0, 0, n, 4); g.fillRect(0, n / 2, n, 4); }, 0.4),
   // Reforma: casa cinza, fachada chumbo, pedra ferro escura em filetes
-  plasterGray: canvasTex(512, (g, n) => { speckle(g, n, '#b3b6b8', ['#a7aaac', '#bfc2c4', '#9fa2a4'], 9000, 2, 7); blotches(g, n, '#9a9d9f', 8, 60, .06, 3); }, 2.0),
-  chumbo: canvasTex(512, (g, n) => { speckle(g, n, '#45494d', ['#3d4145', '#4d5155', '#41454a'], 7000, 2, 13); blotches(g, n, '#3a3e42', 6, 70, .08, 14); }, 2.0),
+  // pintura da reforma: texturas neutras claras, a cor vem de material.color (seletor de cores, ver PAINT)
+  plasterGray: canvasTex(512, (g, n) => { speckle(g, n, '#e6e6e6', ['#d6d6d6', '#f4f4f4', '#cdcdcd'], 9000, 2, 7); blotches(g, n, '#c6c6c6', 8, 60, .06, 3); }, 2.0),
+  chumbo: canvasTex(512, (g, n) => { speckle(g, n, '#e0e0e0', ['#c8c8c8', '#f0f0f0', '#d2d2d2'], 7000, 2, 13); blotches(g, n, '#c0c0c0', 6, 70, .08, 14); }, 2.0),
   stone: canvasTex(512, (g, n) => { // pedra ferro em filetes (~0,6 m por repetição)
     const r = rng(101), cols = ['#2e2a27', '#3a332d', '#24211f', '#4a3c31', '#5a4434', '#33302e', '#2a2724', '#413a35'];
     g.fillStyle = '#121110'; g.fillRect(0, 0, n, n);
@@ -278,7 +303,7 @@ function repaint(img, rgb, patch = {}) {
 function loadPhotoTextures() {
   if (photoReady) return photoReady;
   const loader = new THREE.TextureLoader();
-  const names = Object.keys(TEX), gray = [180, 183, 185];
+  const names = Object.keys(TEX), gray = [200, 200, 200]; // cinza neutro: a cor da pintura entra por material.color
   photoReady = Promise.all(names.map(n => loader.loadAsync(TEX[n]).then(t => {
     t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; const tg = repaint(t.image, gray, PHOTO_PATCHES[n]);
     if (n === 'plaster') {
@@ -288,7 +313,23 @@ function loadPhotoTextures() {
   })));
   return photoReady;
 }
-// cor externa das paredes: atual (bege acinzentado) ou reforma (cinza)
+// Pintura da reforma: uma cor para a casa toda (paredes da casa e da garagem) e outra para os detalhes (chumbo)
+const PAINT_DEFAULT = { wall: '#b3b6b8', trim: '#45494d' };
+const PAINT = { ...PAINT_DEFAULT };
+const PAINT_PRESETS = {
+  wall: [['Cinza do projeto', '#b3b6b8'], ['Branco gelo', '#eceae4'], ['Off-white', '#e4ddd0'], ['Cinza claro', '#c9cbcb'], ['Areia', '#d6c6a8'],
+    ['Fendi', '#c8b8a2'], ['Concreto', '#a3a39c'], ['Verde sálvia', '#a9b49a'], ['Terracota claro', '#c98f6e'], ['Grafite', '#6b6e70']],
+  trim: [['Chumbo do projeto', '#45494d'], ['Preto', '#1f2022'], ['Grafite', '#55585b'], ['Cinza concreto', '#8e8f8a'], ['Bronze', '#6b4f3a'],
+    ['Corten', '#8a4b2a'], ['Madeira', '#7a5a3c'], ['Azul petróleo', '#2f4b55'], ['Verde musgo', '#4a5440'], ['Branco', '#eeeeea']],
+};
+const baseLin = hex => new THREE.Color(hex).r; // valor linear da textura neutra no tom médio
+function applyPaint() {
+  const tint = (mat, hex, base) => { if (mat) mat.color.set(hex).multiplyScalar(1 / base); };
+  tint(M.wallExtGray, PAINT.wall, baseLin('#e6e6e6'));
+  for (const m of Object.values(photoGray)) tint(m, PAINT.wall, baseLin('#c8c8c8'));
+  tint(M.facade, PAINT.trim, baseLin('#e0e0e0'));
+}
+// cor externa das paredes: atual (bege acinzentado) ou reforma (pintura escolhida)
 const extMat = () => PHOTO ? (REFORM ? photoGray.wall : photoMat.wall) : (REFORM ? M.wallExtGray : M.wallExt);
 
 // ---------------- Geometria auxiliar
@@ -751,6 +792,7 @@ function disposeGroup(g) { g.traverse(o => { if (o.geometry) o.geometry.dispose(
 async function rebuild() {
   PHOTO = state.model === 2; CUT = CUTS[state.view]; REFORM = state.project === 'reforma';
   if (PHOTO) await loadPhotoTextures();
+  applyPaint(); document.getElementById('paint').hidden = !REFORM;
   if (houseG) { scene.remove(houseG); disposeGroup(houseG); }
   houseG = buildHouse(); scene.add(houseG);
   if (lotG) { scene.remove(lotG); disposeGroup(lotG); }
@@ -761,7 +803,7 @@ async function rebuild() {
     : 'Geometria da planta baixa, com alturas estimadas pelas fotos (platibanda ~4,40 m; volume do quarto dos fundos ~5,85 m). Materiais simplificados.';
   const annexNote = ' Construção dos fundos (existente, sem planta): 14 × 5 m, encostada no fundo e nas laterais do lote, a 5 m da casa, com telhado de fibrocimento em uma água; medidas das aberturas estimadas pela foto.';
   document.getElementById('note').textContent = (REFORM
-    ? `Reforma: garagem fechada de ${(GX1 - GX0).toFixed(2).replace('.', ',')} × ${(GZ1 - GZ0 - 0.30).toFixed(2).replace('.', ',')} m internos (${GARAGE_AREA} m²), da lateral da casa até o muro, da frente da sala até o fim da área dos fundos. Altura 3,23 m, na linha do friso. Portões de 3,10 × 2,40 m na frente e nos fundos. Área dos fundos, entre a casa e a garagem, coberta com policarbonato transparente (3,05 a 2,80 m, caindo para os fundos). Fachada em chumbo em duas partes: na garagem, faixa de 40 cm (2,83 a 3,23 m, na linha da garagem) da sala até o muro, rente à frente da casa; no quarto da frente, avançando 40 cm, pilar esquerdo até o chão e faixa horizontal de 40 cm (4,00 a 4,40 m) do quarto até o fim da sala. Pedra ferro escura nas faces internas dos pilares. Coberturas planas em chumbo sobre as janelas laterais do quarto dos fundos e da suíte, 30 cm maiores de cada lado e com 60 cm de balanço. Casa e garagem pintadas de cinza. Varal de lâmpadas amarelas em zigue-zague no quintal, entre a casa e a construção dos fundos. Canteiros com arbustos e flores junto aos muros laterais e ao muro da frente.` + base
+    ? `Reforma: garagem fechada de ${(GX1 - GX0).toFixed(2).replace('.', ',')} × ${(GZ1 - GZ0 - 0.30).toFixed(2).replace('.', ',')} m internos (${GARAGE_AREA} m²), da lateral da casa até o muro, da frente da sala até o fim da área dos fundos. Altura 3,23 m, na linha do friso. Portões de 3,10 × 2,40 m na frente e nos fundos. Área dos fundos, entre a casa e a garagem, coberta com policarbonato transparente (3,05 a 2,80 m, caindo para os fundos). Fachada em chumbo em duas partes: na garagem, faixa de 40 cm (2,83 a 3,23 m, na linha da garagem) da sala até o muro, rente à frente da casa; no quarto da frente, avançando 40 cm, pilar esquerdo até o chão e faixa horizontal de 40 cm (4,00 a 4,40 m) do quarto até o fim da sala. Pedra ferro escura nas faces internas dos pilares. Coberturas planas em chumbo sobre as janelas laterais do quarto dos fundos e da suíte, 30 cm maiores de cada lado e com 60 cm de balanço. Casa e garagem pintadas de cinza (dá para testar outras cores em "Cores da pintura"). Varal de lâmpadas amarelas em zigue-zague no quintal, entre a casa e a construção dos fundos. Canteiros com arbustos e flores junto aos muros laterais e ao muro da frente.` + base
     : 'Situação atual. ' + base) + annexNote;
 }
 
@@ -781,6 +823,35 @@ function seg(id, key, after) {
 seg('projSeg', 'project');
 seg('modelSeg', 'model');
 seg('viewSeg', 'view', () => { if (state.view === 'plan' && camera.position.y < 10) goCam('top'); });
+// Cores da pintura: seletor livre + sugestões; fica salvo neste navegador e pode ir no link (?parede=…&detalhes=…)
+{
+  const KEY = 'casa3d-pintura', isHex = v => /^#[0-9a-f]{6}$/i.test(v || '');
+  try { const saved = JSON.parse(localStorage.getItem(KEY) || '{}'); for (const k of ['wall', 'trim']) if (isHex(saved[k])) PAINT[k] = saved[k]; } catch (e) {}
+  const q = new URLSearchParams(location.search);
+  for (const [k, p] of [['wall', 'parede'], ['trim', 'detalhes']]) { const v = '#' + (q.get(p) || ''); if (isHex(v)) PAINT[k] = v.toLowerCase(); }
+  const sync = () => {
+    for (const k of ['wall', 'trim']) {
+      document.getElementById('pick-' + k).value = PAINT[k];
+      const hit = PAINT_PRESETS[k].find(([, h]) => h === PAINT[k]);
+      document.getElementById('name-' + k).textContent = (hit ? hit[0] + ' · ' : '') + PAINT[k].toUpperCase();
+      document.querySelectorAll(`#sw-${k} button`).forEach(b => b.classList.toggle('on', b.dataset.c === PAINT[k]));
+    }
+  };
+  const set = (k, hex) => { PAINT[k] = hex.toLowerCase(); applyPaint(); sync(); try { localStorage.setItem(KEY, JSON.stringify(PAINT)); } catch (e) {} };
+  for (const k of ['wall', 'trim']) {
+    const sw = document.getElementById('sw-' + k);
+    sw.innerHTML = PAINT_PRESETS[k].map(([n, h]) => `<button data-c="${h}" title="${n}" aria-label="${n}" style="background:${h}"></button>`).join('');
+    sw.addEventListener('click', e => { const b = e.target.closest('button'); if (b) set(k, b.dataset.c); });
+    document.getElementById('pick-' + k).addEventListener('input', e => set(k, e.target.value));
+  }
+  document.getElementById('paintReset').onclick = () => { set('wall', PAINT_DEFAULT.wall); set('trim', PAINT_DEFAULT.trim); };
+  document.getElementById('paintLink').onclick = async e => {
+    const u = new URL(location.href); u.searchParams.set('parede', PAINT.wall.slice(1)); u.searchParams.set('detalhes', PAINT.trim.slice(1));
+    try { await navigator.clipboard.writeText(u.href); e.target.textContent = 'Link copiado'; } catch (err) { prompt('Copie o link com estas cores:', u.href); }
+    setTimeout(() => { e.target.textContent = 'Copiar link com estas cores'; }, 2000);
+  };
+  sync();
+}
 document.querySelectorAll('[data-cam]').forEach(b => b.onclick = () => goCam(b.dataset.cam));
 document.getElementById('lot').onchange = e => { state.lot = e.target.checked; lotG.visible = state.lot; };
 document.getElementById('labels').onchange = e => { state.labels = e.target.checked; labelG.visible = state.labels && state.view !== 'ext'; };
