@@ -245,6 +245,7 @@ const M = {
   acGrill: STD({ color: 0x4a4d52, roughness: .7 }), granite: STD({ color: 0x3b3a37, roughness: .3 }),
   bar: STD({ color: 0xf3f3f1, roughness: .5 }), white: STD({ color: 0xf5f5f3, roughness: .6 }), pipe: STD({ color: 0xd7d4cd, roughness: .7 }),
   outside: STD({ color: 0x8a9a6c, roughness: 1 }),
+  bulb: STD({ color: 0xffd24d, emissive: 0xffa400, emissiveIntensity: 2.0, roughness: .3 }), soil: STD({ color: 0x4a3526, roughness: 1 }),
   annexWall: tiled(T.plasterIn), wood: STD({ color: 0x7a5a3c, roughness: .8 }),
   polycarb: STD({ color: 0xdcedf5, roughness: .12, transparent: true, opacity: .32, side: THREE.DoubleSide, depthWrite: false }),
 };
@@ -578,6 +579,7 @@ function buildHouse() {
   if (!REFORM) walk(7.50, 7.95, 0, 12.70);
   if (REFORM) buildGarage(g);
   buildAnnex(g);
+  if (REFORM && CUT === Infinity) buildStringLights(g);
   return g;
 }
 // ---------------- Construção dos fundos (existente): parede branca, esquadrias pretas, telhado em uma água
@@ -625,6 +627,55 @@ function numberPlate() {
   m.position.copy(REFORM ? toV(4.85, (PB + PT) / 2, GPZ - 0.006) : toV(4.02, 2.42, -0.006)); return m;
 }
 
+// ---------------- Reforma: varal de lâmpadas no quintal entre a casa e a construção dos fundos
+// Zigue-zague entre a casa/garagem (2,80 m) e o beiral da construção (2,35 m), com 35 cm de barriga em cada vão
+const LIGHT_HOUSE = [[-2.30, 12.60], [0.90, 12.60], [4.20, 12.60], [7.60, 12.75], [10.90, 12.75]], LIGHT_HY = 2.80;
+const LIGHT_ANNEX = [-0.70, 2.55, 5.90, 9.25], LIGHT_AY = 2.35, LIGHT_SAG = 0.35, BULB_STEP = 0.45;
+function buildStringLights(g) {
+  const pts = [];
+  LIGHT_HOUSE.forEach(([x, z], i) => { pts.push(toV(x, LIGHT_HY, z)); if (i < LIGHT_ANNEX.length) pts.push(toV(LIGHT_ANNEX[i], LIGHT_AY, ANX_Z0 - 0.50)); });
+  const bulbs = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i], b = pts[i + 1], n = Math.max(2, Math.round(a.distanceTo(b) / BULB_STEP)), span = [];
+    for (let k = 0; k <= n; k++) { const t = k / n, p = a.clone().lerp(b, t); p.y -= LIGHT_SAG * 4 * t * (1 - t); span.push(p); if (k > 0 && k < n) bulbs.push(p); }
+    const wire = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(span), n * 2, 0.006, 4), M.frameDark); g.add(wire);
+  }
+  const im = new THREE.InstancedMesh(new THREE.SphereGeometry(0.045, 10, 8), M.bulb, bulbs.length), mx = new THREE.Matrix4();
+  bulbs.forEach((p, i) => { mx.makeTranslation(p.x, p.y - 0.06, p.z); im.setMatrixAt(i, mx); }); g.add(im);
+  const [px, pz] = LIGHT_HOUSE[0]; box(g, px - 0.04, px + 0.04, 0, LIGHT_HY + 0.10, pz - 0.04, pz + 0.04, M.frameDark); // poste junto ao muro
+  for (const k of [0.25, 0.75]) { const p = pts[Math.round(k * (pts.length - 1))];                                         // brilho quente no quintal
+    const l = new THREE.PointLight(0xffc56a, 1.5, 6, 2); l.position.set(p.x, p.y - 0.4, p.z); g.add(l); }
+}
+// ---------------- Reforma: jardinagem junto aos muros laterais visíveis e ao muro da frente
+// Canteiros de terra com arbustos, algumas plantas mais altas junto ao muro e flores
+const GARDEN_BEDS = [ // [X0, X1, Z0, Z1, lado do muro: 'x0' | 'x1' | 'z0']
+  [LOT_X0 + 0.15, LOT_X0 + 0.75, LOT_Z0 + 0.25, ANX_Z0 - 0.90, 'x0'],    // muro da esquerda, da frente até o quintal
+  [GX1 - 0.60, GX1, 14.60, ANX_Z0 - 0.90, 'x1'],                         // muro da direita, no quintal depois da garagem
+  [LOT_X0 + 0.75, 2.55, -4.36, -3.76, 'z0'], [3.85, 7.20, -4.36, -3.76, 'z0'], // muro da frente, dos dois lados do caminho
+];
+function buildGarden(g) {
+  const r = rng(77), shrubs = [], flowers = [];
+  const greens = [0x3f6b2a, 0x4d7d32, 0x355f26, 0x5a8a3a], petals = [0xf2c230, 0xe8555a, 0xf5f2ea, 0xb46fd1, 0xf08a3c];
+  for (const [x0, x1, z0, z1, side] of GARDEN_BEDS) {
+    box(g, x0, x1, 0, 0.10, z0, z1, M.soil, { cast: false });
+    const alongX = side === 'z0', L = alongX ? x1 - x0 : z1 - z0, D = alongX ? z1 - z0 : x1 - x0;
+    const at = (u, w) => { // u ao longo do muro, w a partir do muro
+      if (side === 'x0') return [x0 + w, z0 + u]; if (side === 'x1') return [x1 - w, z0 + u]; return [x0 + u, z0 + w]; };
+    for (let u = 0.25; u < L - 0.15; u += 0.45 + r() * 0.15) {
+      const tall = r() < 0.18, h = tall ? 1.0 + r() * 0.5 : 0.35 + r() * 0.25, w = tall ? 0.22 : 0.22 + r() * (D - 0.45);
+      const [X, Z] = at(u, Math.min(w, D - 0.2)); shrubs.push([X, 0.10 + h / 2, Z, tall ? 0.28 : 0.20 + r() * 0.08, h / 2, tall ? 0.28 : 0.20 + r() * 0.08, greens[Math.floor(r() * 4)]]);
+      if (r() < 0.6) { const [fx, fz] = at(u + 0.2, D - 0.12), c = petals[Math.floor(r() * petals.length)];
+        for (let k = 0; k < 4; k++) flowers.push([fx + (r() - .5) * 0.18, 0.18 + r() * 0.12, fz + (r() - .5) * 0.18, 0.04, 0.04, 0.04, c]); }
+    }
+  }
+  const put = (list, geo, rough) => {
+    const im = new THREE.InstancedMesh(geo, STD({ color: 0xffffff, roughness: rough }), list.length), mx = new THREE.Matrix4(), q = new THREE.Quaternion(), col = new THREE.Color();
+    list.forEach(([X, y, Z, sx, sy, sz, c], i) => { mx.compose(toV(X, y, Z), q, new THREE.Vector3(sx, sy, sz)); im.setMatrixAt(i, mx); im.setColorAt(i, col.setHex(c)); });
+    im.castShadow = true; im.receiveShadow = true; g.add(im);
+  };
+  put(shrubs, new THREE.IcosahedronGeometry(1, 2), 0.9); put(flowers, new THREE.IcosahedronGeometry(1, 1), 0.6);
+}
+
 function buildLot() {
   const g = new THREE.Group(); g.name = 'Terreno';
   box(g, LOT_X0, LOT_X1, -0.04, 0, LOT_Z0, LOT_Z1, M.grass, { cast: false });
@@ -653,6 +704,7 @@ function buildLot() {
   im.castShadow = true; g.add(im);
   for (const [s0, s1] of rails) for (const y of [0.36, 1.58]) box(g, s0, s1, y, y + 0.04, -4.515, -4.485, M.bar);
   box(g, 3.62, 3.64, 1.0, 1.12, -4.56, -4.53, M.darkBack);
+  if (REFORM) buildGarden(g);
   return g;
 }
 
@@ -709,7 +761,7 @@ async function rebuild() {
     : 'Geometria da planta baixa, com alturas estimadas pelas fotos (platibanda ~4,40 m; volume do quarto dos fundos ~5,85 m). Materiais simplificados.';
   const annexNote = ' Construção dos fundos (existente, sem planta): 14 × 5 m, encostada no fundo e nas laterais do lote, a 5 m da casa, com telhado de fibrocimento em uma água; medidas das aberturas estimadas pela foto.';
   document.getElementById('note').textContent = (REFORM
-    ? `Reforma: garagem fechada de ${(GX1 - GX0).toFixed(2).replace('.', ',')} × ${(GZ1 - GZ0 - 0.30).toFixed(2).replace('.', ',')} m internos (${GARAGE_AREA} m²), da lateral da casa até o muro, da frente da sala até o fim da área dos fundos. Altura 3,23 m, na linha do friso. Portões de 3,10 × 2,40 m na frente e nos fundos. Área dos fundos, entre a casa e a garagem, coberta com policarbonato transparente (3,05 a 2,80 m, caindo para os fundos). Fachada em chumbo em duas partes: na garagem, faixa de 40 cm (2,83 a 3,23 m, na linha da garagem) da sala até o muro, rente à frente da casa; no quarto da frente, avançando 40 cm, pilar esquerdo até o chão e faixa horizontal de 40 cm (4,00 a 4,40 m) do quarto até o fim da sala. Pedra ferro escura nas faces internas dos pilares. Coberturas planas em chumbo sobre as janelas laterais do quarto dos fundos e da suíte, 30 cm maiores de cada lado e com 60 cm de balanço. Casa e garagem pintadas de cinza.` + base
+    ? `Reforma: garagem fechada de ${(GX1 - GX0).toFixed(2).replace('.', ',')} × ${(GZ1 - GZ0 - 0.30).toFixed(2).replace('.', ',')} m internos (${GARAGE_AREA} m²), da lateral da casa até o muro, da frente da sala até o fim da área dos fundos. Altura 3,23 m, na linha do friso. Portões de 3,10 × 2,40 m na frente e nos fundos. Área dos fundos, entre a casa e a garagem, coberta com policarbonato transparente (3,05 a 2,80 m, caindo para os fundos). Fachada em chumbo em duas partes: na garagem, faixa de 40 cm (2,83 a 3,23 m, na linha da garagem) da sala até o muro, rente à frente da casa; no quarto da frente, avançando 40 cm, pilar esquerdo até o chão e faixa horizontal de 40 cm (4,00 a 4,40 m) do quarto até o fim da sala. Pedra ferro escura nas faces internas dos pilares. Coberturas planas em chumbo sobre as janelas laterais do quarto dos fundos e da suíte, 30 cm maiores de cada lado e com 60 cm de balanço. Casa e garagem pintadas de cinza. Varal de lâmpadas amarelas em zigue-zague no quintal, entre a casa e a construção dos fundos. Canteiros com arbustos e flores junto aos muros laterais e ao muro da frente.` + base
     : 'Situação atual. ' + base) + annexNote;
 }
 
