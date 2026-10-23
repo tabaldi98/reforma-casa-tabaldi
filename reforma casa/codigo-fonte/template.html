@@ -44,6 +44,9 @@
   #panel { max-height: calc(100vh - 32px); overflow-y: auto; }
   .paint-row { display: flex; align-items: center; gap: 8px; margin: 6px 0 4px; font-size: 13px; }
   .paint-row input[type=color] { width: 38px; height: 30px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: none; cursor: pointer; flex: none; }
+  .paint-txt { flex: 1; min-width: 0; }
+  .paint-row .hex { width: 84px; flex: none; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: var(--text); padding: 5px 6px; font: 12px ui-monospace, Menlo, Consolas, monospace; text-transform: uppercase; }
+  .paint-row .hex.bad { border-color: #d0453a; }
   .paint-row b { display: block; font-weight: 600; } .paint-row span { color: var(--muted); font-size: 12px; }
   .swatches { display: flex; flex-wrap: wrap; gap: 5px; }
   .swatches button { width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(0,0,0,.25); padding: 0; cursor: pointer; }
@@ -119,12 +122,14 @@
       <div class="glabel">Cores da pintura</div>
       <div class="paint-row">
         <input type="color" id="pick-wall" aria-label="Cor da casa">
-        <div><b>Casa</b><span id="name-wall"></span></div>
+        <div class="paint-txt"><b>Casa</b><span id="name-wall"></span></div>
+        <input type="text" class="hex" id="hex-wall" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Código hexadecimal" placeholder="#RRGGBB">
       </div>
       <div class="swatches" id="sw-wall"></div>
       <div class="paint-row">
         <input type="color" id="pick-trim" aria-label="Cor dos detalhes">
-        <div><b>Detalhes (faixas, pilares e coberturas)</b><span id="name-trim"></span></div>
+        <div class="paint-txt"><b title="Faixas da fachada, pilar e coberturas das janelas">Detalhes</b><span id="name-trim"></span></div>
+        <input type="text" class="hex" id="hex-trim" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Código hexadecimal" placeholder="#RRGGBB">
       </div>
       <div class="swatches" id="sw-trim"></div>
       <div class="paint-actions"><button id="paintReset">Cores do projeto</button><button id="paintLink">Copiar link com estas cores</button></div>
@@ -832,6 +837,7 @@ seg('viewSeg', 'view', () => { if (state.view === 'plan' && camera.position.y < 
   const sync = () => {
     for (const k of ['wall', 'trim']) {
       document.getElementById('pick-' + k).value = PAINT[k];
+      const hx = document.getElementById('hex-' + k); if (document.activeElement !== hx) { hx.value = PAINT[k].toUpperCase(); hx.classList.remove('bad'); }
       const hit = PAINT_PRESETS[k].find(([, h]) => h === PAINT[k]);
       document.getElementById('name-' + k).textContent = (hit ? hit[0] + ' · ' : '') + PAINT[k].toUpperCase();
       document.querySelectorAll(`#sw-${k} button`).forEach(b => b.classList.toggle('on', b.dataset.c === PAINT[k]));
@@ -843,6 +849,12 @@ seg('viewSeg', 'view', () => { if (state.view === 'plan' && camera.position.y < 
     sw.innerHTML = PAINT_PRESETS[k].map(([n, h]) => `<button data-c="${h}" title="${n}" aria-label="${n}" style="background:${h}"></button>`).join('');
     sw.addEventListener('click', e => { const b = e.target.closest('button'); if (b) set(k, b.dataset.c); });
     document.getElementById('pick-' + k).addEventListener('input', e => set(k, e.target.value));
+    // código digitado à mão: aceita RRGGBB ou RGB, com ou sem #
+    const hx = document.getElementById('hex-' + k), parse = v => { v = v.trim().replace(/^#/, '');
+      if (/^[0-9a-f]{3}$/i.test(v)) v = v.replace(/./g, c => c + c); return /^[0-9a-f]{6}$/i.test(v) ? '#' + v : null; };
+    hx.addEventListener('input', () => { const h = parse(hx.value); hx.classList.toggle('bad', !h && hx.value.trim().length > 0); if (h && hx.value.replace('#', '').length === 6) set(k, h); });
+    hx.addEventListener('change', () => { const h = parse(hx.value); if (h) set(k, h); hx.value = PAINT[k].toUpperCase(); hx.classList.remove('bad'); });
+    hx.addEventListener('keydown', e => { if (e.key === 'Enter') hx.blur(); });
   }
   document.getElementById('paintReset').onclick = () => { set('wall', PAINT_DEFAULT.wall); set('trim', PAINT_DEFAULT.trim); };
   document.getElementById('paintLink').onclick = async e => {
