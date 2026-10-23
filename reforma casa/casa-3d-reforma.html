@@ -42,12 +42,24 @@
   .checks label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
   #export { width: 100%; padding: 8px; margin-top: 2px; font-size: 13px; }
   #panel { max-height: calc(100vh - 32px); overflow-y: auto; }
-  .paint-row { display: flex; align-items: center; gap: 8px; margin: 6px 0 4px; font-size: 13px; }
-  .paint-row input[type=color] { width: 38px; height: 30px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: none; cursor: pointer; flex: none; }
-  .paint-txt { flex: 1; min-width: 0; }
-  .paint-row .hex { width: 84px; flex: none; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: var(--text); padding: 5px 6px; font: 12px ui-monospace, Menlo, Consolas, monospace; text-transform: uppercase; }
-  .paint-row .hex.bad { border-color: #d0453a; }
-  .paint-row b { display: block; font-weight: 600; } .paint-row span { color: var(--muted); font-size: 12px; }
+  #paintTabs button { display: flex; align-items: center; justify-content: center; gap: 6px; }
+  #paintTabs .dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(0,0,0,.3); flex: none; }
+  .cp { margin: 8px 0; padding: 10px; border: 1px solid var(--line); border-radius: 10px; }
+  .cp-sv { position: relative; height: 140px; border-radius: 8px; cursor: crosshair; touch-action: none; }
+  .cp-hue { position: relative; height: 12px; margin: 12px 6px 10px; border-radius: 6px; cursor: pointer; touch-action: none;
+    background: linear-gradient(to right, #f00, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00); }
+  .cp-knob { position: absolute; width: 18px; height: 18px; margin: -9px 0 0 -9px; border: 3px solid #fff; border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.25), 0 1px 3px rgba(0,0,0,.3); pointer-events: none; }
+  .cp-hue .cp-knob { top: 50%; }
+  .cp-sv:focus-visible, .cp-hue:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .cp-row { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; }
+  .cp-cur { width: 22px; height: 22px; border-radius: 50%; flex: none; border: 1px solid rgba(0,0,0,.2); }
+  .cp-hash { color: var(--muted); font-size: 15px; }
+  #cpHex { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--text); font: 600 14px ui-monospace, Menlo, Consolas, monospace; text-transform: uppercase; outline: none; padding: 2px 0; }
+  #cpHex.bad { color: #d0453a; }
+  #cpCopy { border: 0; background: transparent; color: var(--muted); cursor: pointer; padding: 4px; border-radius: 4px; display: grid; place-items: center; }
+  #cpCopy:hover { color: var(--text); background: var(--seg); }
+  .cp-name { font-size: 12px; color: var(--muted); margin-top: 6px; min-height: 1em; }
   .swatches { display: flex; flex-wrap: wrap; gap: 5px; }
   .swatches button { width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(0,0,0,.25); padding: 0; cursor: pointer; }
   .swatches button.on { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -120,18 +132,21 @@
     </div>
     <div class="group" id="paint">
       <div class="glabel">Cores da pintura</div>
-      <div class="paint-row">
-        <input type="color" id="pick-wall" aria-label="Cor da casa">
-        <div class="paint-txt"><b>Casa</b><span id="name-wall"></span></div>
-        <input type="text" class="hex" id="hex-wall" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Código hexadecimal" placeholder="#RRGGBB">
+      <div class="seg" id="paintTabs">
+        <button data-k="wall" class="on"><i class="dot" id="dot-wall"></i>Casa</button>
+        <button data-k="trim" title="Faixas da fachada, pilar e coberturas das janelas"><i class="dot" id="dot-trim"></i>Detalhes</button>
       </div>
-      <div class="swatches" id="sw-wall"></div>
-      <div class="paint-row">
-        <input type="color" id="pick-trim" aria-label="Cor dos detalhes">
-        <div class="paint-txt"><b title="Faixas da fachada, pilar e coberturas das janelas">Detalhes</b><span id="name-trim"></span></div>
-        <input type="text" class="hex" id="hex-trim" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Código hexadecimal" placeholder="#RRGGBB">
+      <div class="cp">
+        <div class="cp-sv" id="cpSV" tabindex="0" role="slider" aria-label="Saturação e brilho"><div class="cp-knob" id="cpSVk"></div></div>
+        <div class="cp-hue" id="cpHue" tabindex="0" role="slider" aria-label="Matiz"><div class="cp-knob" id="cpHuek"></div></div>
+        <div class="cp-row">
+          <i class="cp-cur" id="cpCur"></i><span class="cp-hash">#</span>
+          <input id="cpHex" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Código hexadecimal">
+          <button id="cpCopy" title="Copiar código" aria-label="Copiar código"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="5" width="8.5" height="8.5" rx="1.5"/><path d="M3 10.5V3.8C3 3.4 3.4 3 3.8 3h6.7"/></svg></button>
+        </div>
+        <div class="cp-name" id="cpName"></div>
       </div>
-      <div class="swatches" id="sw-trim"></div>
+      <div class="swatches" id="cpSw"></div>
       <div class="paint-actions"><button id="paintReset">Cores do projeto</button><button id="paintLink">Copiar link com estas cores</button></div>
     </div>
     <div class="group checks">
@@ -828,41 +843,65 @@ function seg(id, key, after) {
 seg('projSeg', 'project');
 seg('modelSeg', 'model');
 seg('viewSeg', 'view', () => { if (state.view === 'plan' && camera.position.y < 10) goCam('top'); });
-// Cores da pintura: seletor livre + sugestões; fica salvo neste navegador e pode ir no link (?parede=…&detalhes=…)
+// Cores da pintura: seletor (quadro de saturação/brilho + barra de matiz + código hex) e sugestões.
+// Fica salvo neste navegador e pode ir no link (?parede=…&detalhes=…)
 {
-  const KEY = 'casa3d-pintura', isHex = v => /^#[0-9a-f]{6}$/i.test(v || '');
+  const KEY = 'casa3d-pintura', $ = id => document.getElementById(id), isHex = v => /^#[0-9a-f]{6}$/i.test(v || '');
   try { const saved = JSON.parse(localStorage.getItem(KEY) || '{}'); for (const k of ['wall', 'trim']) if (isHex(saved[k])) PAINT[k] = saved[k]; } catch (e) {}
   const q = new URLSearchParams(location.search);
   for (const [k, p] of [['wall', 'parede'], ['trim', 'detalhes']]) { const v = '#' + (q.get(p) || ''); if (isHex(v)) PAINT[k] = v.toLowerCase(); }
-  const sync = () => {
-    for (const k of ['wall', 'trim']) {
-      document.getElementById('pick-' + k).value = PAINT[k];
-      const hx = document.getElementById('hex-' + k); if (document.activeElement !== hx) { hx.value = PAINT[k].toUpperCase(); hx.classList.remove('bad'); }
-      const hit = PAINT_PRESETS[k].find(([, h]) => h === PAINT[k]);
-      document.getElementById('name-' + k).textContent = (hit ? hit[0] + ' · ' : '') + PAINT[k].toUpperCase();
-      document.querySelectorAll(`#sw-${k} button`).forEach(b => b.classList.toggle('on', b.dataset.c === PAINT[k]));
-    }
+  const toHsv = hex => { const n = parseInt(hex.slice(1), 16), r = (n >> 16) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
+    const mx = Math.max(r, g, b), d = mx - Math.min(r, g, b);
+    const h = d === 0 ? null : 60 * (mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4);
+    return { h, s: mx ? d / mx : 0, v: mx }; };
+  const toHex = (h, s, v) => { const f = k => { const x = (k + h / 60) % 6; return v - v * s * Math.max(0, Math.min(x, 4 - x, 1)); };
+    return '#' + [f(5), f(3), f(1)].map(c => Math.round(c * 255).toString(16).padStart(2, '0')).join(''); };
+  const parse = v => { v = v.trim().replace(/^#/, ''); if (/^[0-9a-f]{3}$/i.test(v)) v = v.replace(/./g, c => c + c); return /^[0-9a-f]{6}$/i.test(v) ? '#' + v.toLowerCase() : null; };
+  let cur = 'wall', hsv = { h: 0, s: 0, v: 0 };
+  const load = () => { const t = toHsv(PAINT[cur]); hsv = { h: t.h ?? hsv.h, s: t.s, v: t.v }; };
+  const draw = () => {
+    const hex = PAINT[cur], sv = $('cpSV');
+    sv.style.background = `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(${hsv.h}, 100%, 50%))`;
+    Object.assign($('cpSVk').style, { left: hsv.s * 100 + '%', top: (1 - hsv.v) * 100 + '%', background: hex });
+    Object.assign($('cpHuek').style, { left: hsv.h / 360 * 100 + '%', background: `hsl(${hsv.h}, 100%, 50%)` });
+    $('cpCur').style.background = hex;
+    if (document.activeElement !== $('cpHex')) { $('cpHex').value = hex.slice(1).toUpperCase(); $('cpHex').classList.remove('bad'); }
+    const hit = PAINT_PRESETS[cur].find(([, h]) => h === hex);
+    $('cpName').textContent = hit ? hit[0] : 'Cor personalizada';
+    for (const k of ['wall', 'trim']) $('dot-' + k).style.background = PAINT[k];
+    document.querySelectorAll('#cpSw button').forEach(b => b.classList.toggle('on', b.dataset.c === hex));
   };
-  const set = (k, hex) => { PAINT[k] = hex.toLowerCase(); applyPaint(); sync(); try { localStorage.setItem(KEY, JSON.stringify(PAINT)); } catch (e) {} };
-  for (const k of ['wall', 'trim']) {
-    const sw = document.getElementById('sw-' + k);
-    sw.innerHTML = PAINT_PRESETS[k].map(([n, h]) => `<button data-c="${h}" title="${n}" aria-label="${n}" style="background:${h}"></button>`).join('');
-    sw.addEventListener('click', e => { const b = e.target.closest('button'); if (b) set(k, b.dataset.c); });
-    document.getElementById('pick-' + k).addEventListener('input', e => set(k, e.target.value));
-    // código digitado à mão: aceita RRGGBB ou RGB, com ou sem #
-    const hx = document.getElementById('hex-' + k), parse = v => { v = v.trim().replace(/^#/, '');
-      if (/^[0-9a-f]{3}$/i.test(v)) v = v.replace(/./g, c => c + c); return /^[0-9a-f]{6}$/i.test(v) ? '#' + v : null; };
-    hx.addEventListener('input', () => { const h = parse(hx.value); hx.classList.toggle('bad', !h && hx.value.trim().length > 0); if (h && hx.value.replace('#', '').length === 6) set(k, h); });
-    hx.addEventListener('change', () => { const h = parse(hx.value); if (h) set(k, h); hx.value = PAINT[k].toUpperCase(); hx.classList.remove('bad'); });
-    hx.addEventListener('keydown', e => { if (e.key === 'Enter') hx.blur(); });
-  }
-  document.getElementById('paintReset').onclick = () => { set('wall', PAINT_DEFAULT.wall); set('trim', PAINT_DEFAULT.trim); };
-  document.getElementById('paintLink').onclick = async e => {
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(PAINT)); } catch (e) {} };
+  const set = (hex, fromHsv) => { PAINT[cur] = hex; if (!fromHsv) load(); applyPaint(); draw(); save(); };
+  const fromHsv = () => set(toHex(hsv.h, hsv.s, hsv.v), true);
+  const tab = k => { cur = k; document.querySelectorAll('#paintTabs button').forEach(b => b.classList.toggle('on', b.dataset.k === k));
+    $('cpSw').innerHTML = PAINT_PRESETS[k].map(([n, h]) => `<button data-c="${h}" title="${n}" aria-label="${n}" style="background:${h}"></button>`).join('');
+    load(); draw(); };
+  const drag = (el, fn) => {
+    const at = e => { const r = el.getBoundingClientRect(); fn(Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))); };
+    el.addEventListener('pointerdown', e => { el.setPointerCapture(e.pointerId); at(e); e.preventDefault(); el.focus(); });
+    el.addEventListener('pointermove', e => { if (el.hasPointerCapture(e.pointerId)) at(e); });
+  };
+  drag($('cpSV'), (x, y) => { hsv.s = x; hsv.v = 1 - y; fromHsv(); });
+  drag($('cpHue'), x => { hsv.h = Math.min(359.9, x * 360); fromHsv(); });
+  $('cpSV').addEventListener('keydown', e => { const d = e.shiftKey ? 0.1 : 0.02, m = { ArrowLeft: [-d, 0], ArrowRight: [d, 0], ArrowUp: [0, d], ArrowDown: [0, -d] }[e.key];
+    if (!m) return; e.preventDefault(); hsv.s = Math.min(1, Math.max(0, hsv.s + m[0])); hsv.v = Math.min(1, Math.max(0, hsv.v + m[1])); fromHsv(); });
+  $('cpHue').addEventListener('keydown', e => { const d = (e.shiftKey ? 10 : 2) * ({ ArrowLeft: -1, ArrowDown: -1, ArrowRight: 1, ArrowUp: 1 }[e.key] || 0);
+    if (!d) return; e.preventDefault(); hsv.h = (hsv.h + d + 360) % 360; fromHsv(); });
+  const hx = $('cpHex');
+  hx.addEventListener('input', () => { const h = parse(hx.value); hx.classList.toggle('bad', !h && hx.value.trim().length > 0); if (h && hx.value.replace('#', '').length === 6) set(h); });
+  hx.addEventListener('change', () => { const h = parse(hx.value); if (h) set(h); hx.value = PAINT[cur].slice(1).toUpperCase(); hx.classList.remove('bad'); });
+  hx.addEventListener('keydown', e => { if (e.key === 'Enter') hx.blur(); });
+  $('cpCopy').onclick = async () => { try { await navigator.clipboard.writeText(PAINT[cur].toUpperCase()); $('cpName').textContent = 'Código copiado'; } catch (e) { hx.select(); } };
+  $('cpSw').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set(b.dataset.c); });
+  $('paintTabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) tab(b.dataset.k); });
+  $('paintReset').onclick = () => { Object.assign(PAINT, PAINT_DEFAULT); load(); applyPaint(); draw(); save(); };
+  $('paintLink').onclick = async e => {
     const u = new URL(location.href); u.searchParams.set('parede', PAINT.wall.slice(1)); u.searchParams.set('detalhes', PAINT.trim.slice(1));
     try { await navigator.clipboard.writeText(u.href); e.target.textContent = 'Link copiado'; } catch (err) { prompt('Copie o link com estas cores:', u.href); }
     setTimeout(() => { e.target.textContent = 'Copiar link com estas cores'; }, 2000);
   };
-  sync();
+  tab('wall');
 }
 document.querySelectorAll('[data-cam]').forEach(b => b.onclick = () => goCam(b.dataset.cam));
 document.getElementById('lot').onchange = e => { state.lot = e.target.checked; lotG.visible = state.lot; };
